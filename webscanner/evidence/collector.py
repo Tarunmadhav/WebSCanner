@@ -1,6 +1,7 @@
-def collect_evidence(url, response):
+def collect(response):
     return {
-        "url": url,
-        "status_code": response.status_code,
+        "url": response.url,
+        "status": response.status_code,
         "headers": dict(response.headers),
+        "body_length": len(response.text or ""),
     }

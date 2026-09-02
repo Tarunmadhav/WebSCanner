@@ -1,53 +1,35 @@
 from ..models.finding import Finding
 
-
-def check_cookies(url, response):
+def check(resp):
     findings = []
-
-    cookies = response.headers.get("Set-Cookie")
-
-    if not cookies:
-        return findings
-
-    lower = cookies.lower()
-
-    if "secure" not in lower:
-        findings.append(
-            Finding(
-                title="Cookie without Secure attribute",
-                severity="Medium",
-                category="Cookies",
-                url=url,
-                description="A Set-Cookie response was observed without Secure.",
-                recommendation="Use the Secure attribute for cookies sent over HTTPS.",
-                evidence=cookies[:500]
-            )
-        )
-
-    if "httponly" not in lower:
-        findings.append(
-            Finding(
-                title="Cookie without HttpOnly attribute",
-                severity="Medium",
-                category="Cookies",
-                url=url,
-                description="A Set-Cookie response was observed without HttpOnly.",
-                recommendation="Use HttpOnly when client-side JavaScript does not need the cookie.",
-                evidence=cookies[:500]
-            )
-        )
-
-    if "samesite" not in lower:
-        findings.append(
-            Finding(
-                title="Cookie without SameSite attribute",
-                severity="Low",
-                category="Cookies",
-                url=url,
-                description="A Set-Cookie response was observed without SameSite.",
-                recommendation="Configure an appropriate SameSite policy.",
-                evidence=cookies[:500]
-            )
-        )
-
+    values = resp.headers.get("Set-Cookie", "")
+    for raw in values.splitlines():
+        if not raw.strip():
+            continue
+        name = raw.split("=", 1)[0].strip()
+        low = raw.lower()
+        if "secure" not in low:
+            findings.append(Finding(
+                "Cookie missing Secure attribute", "medium", resp.url,
+                "A cookie was observed without Secure.",
+                "Cookie: " + name,
+                "Set Secure on sensitive cookies.",
+                "A05:2021", "cookies.secure", "high"
+            ))
+        if "httponly" not in low:
+            findings.append(Finding(
+                "Cookie missing HttpOnly attribute", "medium", resp.url,
+                "A cookie was observed without HttpOnly.",
+                "Cookie: " + name,
+                "Set HttpOnly on session cookies where client-side access is unnecessary.",
+                "A05:2021", "cookies.httponly", "high"
+            ))
+        if "samesite" not in low:
+            findings.append(Finding(
+                "Cookie missing SameSite attribute", "low", resp.url,
+                "A cookie was observed without SameSite.",
+                "Cookie: " + name,
+                "Set an appropriate SameSite value.",
+                "A05:2021", "cookies.samesite", "medium"
+            ))
     return findings

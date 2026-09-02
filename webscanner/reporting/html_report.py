@@ -1,78 +1,47 @@
-import html
+from html import escape
+from pathlib import Path
 
-
-def write_html(findings, path, target):
+def save(path, data):
     rows = []
-
-    for finding in findings:
+    for finding in data["findings"]:
         rows.append(
-            "<tr>"
-            f"<td>{html.escape(finding.severity)}</td>"
-            f"<td>{html.escape(finding.category)}</td>"
-            f"<td>{html.escape(finding.title)}</td>"
-            f"<td>{html.escape(finding.url)}</td>"
-            f"<td>{html.escape(finding.description)}</td>"
-            f"<td>{html.escape(finding.recommendation)}</td>"
-            "</tr>"
+            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td><pre>{}</pre></td></tr>".format(
+                escape(finding["severity"].upper()),
+                escape(finding["title"]),
+                escape(finding["owasp"]),
+                escape(finding["url"]),
+                escape(finding["evidence"])
+            )
         )
-
-    table = "\n".join(rows)
-
-    document = f"""<!DOCTYPE html>
+    body = "".join(rows) or "<tr><td colspan='5'>No findings</td></tr>"
+    html = """<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
-<title>WebSCanner Security Report</title>
+<title>WebSCanner Report</title>
 <style>
-body {{
-    font-family: Arial, sans-serif;
-    margin: 40px;
-    background: #f5f5f5;
-}}
-.container {{
-    background: white;
-    padding: 30px;
-    border-radius: 10px;
-}}
-table {{
-    width: 100%;
-    border-collapse: collapse;
-}}
-th, td {{
-    border: 1px solid #ddd;
-    padding: 10px;
-    text-align: left;
-    vertical-align: top;
-}}
-th {{
-    background: #eeeeee;
-}}
+body {{ font-family: Arial, sans-serif; margin: 32px; }}
+table {{ border-collapse: collapse; width: 100%; }}
+th, td {{ border: 1px solid #ccc; padding: 8px; vertical-align: top; }}
+th {{ background: #eee; }}
+pre {{ white-space: pre-wrap; }}
 </style>
 </head>
 <body>
-<div class="container">
-<h1>WebSCanner Security Report</h1>
-<p><strong>Target:</strong> {html.escape(target)}</p>
-<p><strong>Total findings:</strong> {len(findings)}</p>
+<h1>WebSCanner Report</h1>
+<p><b>Target:</b> {target}</p>
+<p><b>Pages:</b> {pages} <b>Findings:</b> {count}</p>
 <table>
-<thead>
-<tr>
-<th>Severity</th>
-<th>Category</th>
-<th>Finding</th>
-<th>URL</th>
-<th>Description</th>
-<th>Recommendation</th>
-</tr>
-</thead>
-<tbody>
-{table}
-</tbody>
+<tr><th>Severity</th><th>Title</th><th>OWASP</th><th>URL</th><th>Evidence</th></tr>
+{body}
 </table>
-</div>
 </body>
 </html>
-"""
-
-    with open(path, "w", encoding="utf-8") as handle:
-        handle.write(document)
+""".format(
+        target=escape(data["target"]),
+        pages=data["pages"],
+        count=data["finding_count"],
+        body=body
+    )
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    Path(path).write_text(html, encoding="utf-8")

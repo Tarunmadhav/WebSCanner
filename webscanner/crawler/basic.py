@@ -1,82 +1,33 @@
 from collections import deque
-from urllib.parse import urljoin, urlparse
-
+import time
+import requests
 from bs4 import BeautifulSoup
+from ..core.scope import same_origin, absolute
 
-
-def crawl(target, client, max_pages):
-    parsed_target = urlparse(target)
-
-    target_origin = (
-        parsed_target.scheme,
-        parsed_target.netloc.lower()
-    )
-
-    queue = deque([target])
-    visited = set()
-    results = []
-
-    while queue and len(results) < max_pages:
+def crawl(session, start_url, max_pages=25, timeout=8.0, delay=0.15):
+    queue = deque([start_url])
+    seen = set()
+    pages = []
+    while queue and len(pages) < max_pages:
         url = queue.popleft()
-
-        if url in visited:
+        if url in seen:
             continue
-
-        visited.add(url)
-
+        seen.add(url)
         try:
-            response = client.get(url)
+            response = session.get(
+                url, timeout=timeout, allow_redirects=True
+            )
         except requests.RequestException:
             continue
-        except Exception:
+        content_type = response.headers.get("Content-Type", "")
+        if "text/html" not in content_type.lower():
             continue
-
-        results.append({
-            "url": url,
-            "response": response
-        })
-
-        content_type = response.headers.get(
-            "Content-Type",
-            ""
-        ).lower()
-
-        if "text/html" not in content_type:
-            continue
-
-        try:
-            soup = BeautifulSoup(
-                response.text,
-                "html.parser"
-            )
-        except Exception:
-            continue
-
-        for link in soup.find_all("a", href=True):
-            next_url = urljoin(
-                response.url,
-                link.get("href")
-            )
-
-            parsed = urlparse(next_url)
-
-            if parsed.scheme not in {
-                "http",
-                "https"
-            }:
-                continue
-
-            origin = (
-                parsed.scheme,
-                parsed.netloc.lower()
-            )
-
-            if origin != target_origin:
-                continue
-
-            clean_url = next_url.split("#")[0]
-
-            if clean_url not in visited:
-                queue.append(clean_url)
-
-    return results
+        pages.append(response)
+        soup = BeautifulSoup(response.text, "html.parser")
+        for tag in soup.find_all("a", href=True):
+            candidate = absolute(response.url, tag["href"])
+            if same_origin(start_url, candidate) and candidate not in seen:
+                queue.append(candidate)
+        if delay:
+            time.sleep(delay)
+    return pages

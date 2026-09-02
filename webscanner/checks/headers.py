@@ -1,46 +1,24 @@
 from ..models.finding import Finding
 
+RULES = [
+    ("Strict-Transport-Security", "Missing Strict-Transport-Security", "medium",
+     "HSTS was not observed.", "Add an appropriate HSTS policy after HTTPS is correctly deployed.", "A05:2021"),
+    ("Content-Security-Policy", "Missing Content-Security-Policy", "medium",
+     "CSP was not observed.", "Deploy and test a restrictive Content-Security-Policy.", "A05:2021"),
+    ("X-Content-Type-Options", "Missing X-Content-Type-Options", "low",
+     "X-Content-Type-Options was not observed.", "Set X-Content-Type-Options: nosniff.", "A05:2021"),
+    ("Referrer-Policy", "Missing Referrer-Policy", "low",
+     "Referrer-Policy was not observed.", "Set an explicit Referrer-Policy.", "A05:2021"),
+]
 
-def check_headers(url, response):
+def check(resp):
+    existing = {k.lower() for k in resp.headers}
     findings = []
-
-    required = {
-        "Strict-Transport-Security": (
-            "Medium",
-            "HSTS was not observed.",
-            "Enable Strict-Transport-Security for HTTPS applications."
-        ),
-        "Content-Security-Policy": (
-            "Medium",
-            "Content-Security-Policy was not observed.",
-            "Define a restrictive Content-Security-Policy."
-        ),
-        "X-Content-Type-Options": (
-            "Low",
-            "X-Content-Type-Options was not observed.",
-            "Set X-Content-Type-Options to nosniff."
-        ),
-        "Referrer-Policy": (
-            "Low",
-            "Referrer-Policy was not observed.",
-            "Configure an appropriate Referrer-Policy."
-        ),
-    }
-
-    for header, values in required.items():
-        if not response.headers.get(header):
-            severity, description, recommendation = values
-
-            findings.append(
-                Finding(
-                    title=f"Missing security header: {header}",
-                    severity=severity,
-                    category="Security Headers",
-                    url=url,
-                    description=description,
-                    recommendation=recommendation,
-                    evidence=f"{header} header was not present."
-                )
-            )
-
+    for header, title, severity, desc, remediation, owasp in RULES:
+        if header.lower() not in existing:
+            findings.append(Finding(
+                title, severity, resp.url, desc,
+                "Header absent: " + header, remediation, owasp,
+                "headers.missing", "high"
+            ))
     return findings

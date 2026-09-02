@@ -1,11 +1,11 @@
-SEVERITY_ORDER = {
-    "Informational": 0,
-    "Low": 1,
-    "Medium": 2,
-    "High": 3,
-    "Critical": 4,
+WEIGHTS = {
+    "critical": 10.0,
+    "high": 8.0,
+    "medium": 5.0,
+    "low": 2.0,
+    "info": 0.5,
 }
 
-
-def severity_score(severity):
-    return SEVERITY_ORDER.get(severity, 0)
+def risk_score(severity, confidence="medium"):
+    factor = {"high": 1.0, "medium": 0.8, "low": 0.6}.get(confidence, 0.8)
+    return round(WEIGHTS.get(severity.lower(), 0.5) * factor, 2)
