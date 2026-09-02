@@ -1,11 +1,5 @@
 # WebSCanner
 
-**Automated Web-Application Vulnerability Scanner**\
-**Project:** WebSCanner\
-**Batch:** C2C-109\
-**Platform:** Windows / Python 3.11+\
-**Purpose:** Authorized security assessment of web applications
-
 ------------------------------------------------------------------------
 
 ## 1. What is WebSCanner?
